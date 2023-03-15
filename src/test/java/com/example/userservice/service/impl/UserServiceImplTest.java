@@ -40,13 +40,13 @@ class UserServiceImplTest {
 
 	@Test
 	void testGetAllUsers() {
-		User user1 = new User("John", "Doe", "john.doe@example.com");
-		User user2 = new User("Jane", "Doe", "jane.doe@example.com");
-		List<User> users = Arrays.asList(user1, user2);
+		var user1 = new User("John", "Doe", "john.doe@example.com");
+		var user2 = new User("Jane", "Doe", "jane.doe@example.com");
+		var users = Arrays.asList(user1, user2);
 
 		when(userRepository.findAll()).thenReturn(users);
 
-		List<UserDto> userDtos = userService.getAllUsers();
+		var userDtos = userService.getAllUsers();
 
 		assertNotNull(userDtos);
 		assertEquals(2, userDtos.size());
@@ -62,11 +62,11 @@ class UserServiceImplTest {
 
 	@Test
 	void testGetUserById() {
-		User user = new User("John", "Doe", "john.doe@example.com");
+		var user = new User("John", "Doe", "john.doe@example.com");
 
 		when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-		UserDto userDto = userService.getUserById(user.getId());
+		var userDto = userService.getUserById(user.getId());
 
 		assertNotNull(userDto);
 		assertEquals("John", userDto.getFirstName());
@@ -76,7 +76,7 @@ class UserServiceImplTest {
 
 	@Test
 	void testGetUserByIdNotFound() {
-		Long id = 1L;
+		var id = 1L;
 
 		when(userRepository.findById(id)).thenReturn(Optional.empty());
 
@@ -85,19 +85,33 @@ class UserServiceImplTest {
 
 	@Test
 	void testCreateUser() {
-		CreateUserDto createUserDto = new CreateUserDto("John", "Doe", "john.doe@example.com");
-		User user = new User(createUserDto.getFirstName(), createUserDto.getLastName(), createUserDto.getEmail());
+		var email = "john.doe@example.com";
+		var createUserDto = new CreateUserDto("John", "Doe", email);
+		var user = new User(createUserDto.getFirstName(), createUserDto.getLastName(), email);
 
 		when(userRepository.save(any(User.class))).thenReturn(user);
 
-		UserDto userDto = userService.createUser(createUserDto);
+		var userDto = userService.createUser(createUserDto);
 
 		assertNotNull(userDto);
 		assertEquals("John", userDto.getFirstName());
 		assertEquals("Doe", userDto.getLastName());
 		assertEquals("john.doe@example.com", userDto.getEmail());
 
+
+		verify(userRepository).findByEmail(email);
 		verify(userRepository).save(user);
+	}
+
+	@Test
+	void testCreateUserWithSameEmailAlreadyExists() {
+		var email = "john.doe@example.com";
+		var createUserDto = new CreateUserDto("John", "Doe", email);
+		var user = new User(createUserDto.getFirstName(), createUserDto.getLastName(), email);
+
+		when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+		assertThrows(IllegalOperationException.class, () -> userService.createUser(createUserDto));
 	}
 
 	@Test
@@ -133,7 +147,7 @@ class UserServiceImplTest {
 		when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
 		when(userRepository.save(existingUser)).thenReturn(expectedUser);
 
-		UserDto result = userService.updateUser(userId, updatedUser);
+		var result = userService.updateUser(userId, updatedUser);
 
 		assertThat(result).isEqualTo(UserDto.fromEntity(expectedUser));
 		verify(userRepository).findById(userId);
